@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Emotion Detector</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background: #f0f4f8;
+            padding: 40px;
+        }
+        .container {
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgb(0 0 0 / 0.1);
+        }
+        .result-card {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #e7f3ff;
+        }
+        .spinner-border {
+            display: none;
+        }
+        .emoji {
+            font-size: 48px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="mb-4 text-center">Emotion Detector</h2>
+        <form id="emotionForm">
+            <div class="mb-3">
+                <label for="textInput" class="form-label">Enter Text</label>
+                <textarea id="textInput" name="text" class="form-control" rows="4" placeholder="Type your sentence here..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+                Analyze Emotion
+                <span class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true"></span>
+            </button>
+        </form>
+
+        <div id="result" class="result-card mt-4" style="display:none;">
+            <h4>
+                Dominant Emotion: <span id="dominantEmotion"></span>
+                <span id="emoji" class="emoji"></span>
+            </h4>
+            <h5>Scores:</h5>
+            <ul>
+                <li>Positive: <span id="posScore"></span></li>
+                <li>Neutral: <span id="neuScore"></span></li>
+                <li>Negative: <span id="negScore"></span></li>
+                <li>Compound: <span id="compoundScore"></span></li>
+            </ul>
+        </div>
+
+        <div id="error" class="alert alert-danger mt-3" style="display:none;"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('emotionForm');
+        const spinner = form.querySelector('.spinner-border');
+        const resultDiv = document.getElementById('result');
+        const errorDiv = document.getElementById('error');
+
+        const emojiMap = {
+            joy: "😊",
+            sadness: "😢",
+            anger: "😠",
+            fear: "😨",
+            surprise: "😲",
+            neutral: "😐"
+        };
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            spinner.style.display = 'inline-block';
+
+            const formData = new FormData(form);
+            const text = formData.get('text');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                spinner.style.display = 'none';
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    errorDiv.textContent = error.error || 'Something went wrong.';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const data = await response.json();
+
+                document.getElementById('dominantEmotion').textContent = data.dominant_emotion;
+                document.getElementById('posScore').textContent = data.scores.pos.toFixed(3);
+                document.getElementById('neuScore').textContent = data.scores.neu.toFixed(3);
+                document.getElementById('negScore').textContent = data.scores.neg.toFixed(3);
+                document.getElementById('compoundScore').textContent = data.scores.compound.toFixed(4);
+                document.getElementById('emoji').textContent = emojiMap[data.dominant_emotion] || "";
+
+                resultDiv.style.display = 'block';
+
+            } catch (error) {
+                spinner.style.display = 'none';
+                errorDiv.textContent = 'Network error or server problem.';
+                errorDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
